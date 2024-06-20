@@ -1,50 +1,56 @@
 #!/usr/bin/python3
 """
-log parsing
+Log parsing
 """
 
 import sys
-import re
 
+# Main execution starts here
+if __name__ == '__main__':
 
-def output(log: dict) -> None:
-    """
-    helper function to display stats
-    """
-    print("File size: {}".format(log["file_size"]))
-    for code in sorted(log["code_frequency"]):
-        if log["code_frequency"][code]:
-            print("{}: {}".format(code, log["code_frequency"][code]))
+    # Initialize filesize and count variables
+    filesize, count = 0, 0
+    # Define a list of HTTP status codes to track
+    codes = ["200", "301", "400", "401", "403", "404", "405", "500"]
+    # Initialize a dictionary to count occurrences of each status code
+    stats = {k: 0 for k in codes}
 
+    # Function to print the current statistics
+    def print_stats(stats: dict, file_size: int) -> None:
+        # Print the total filesize
+        print("File size: {:d}".format(filesize))
+        # Print the count of each status code, sorted by code
+        for k, v in sorted(stats.items()):
+            if v:
+                print("{}: {}".format(k, v))
 
-if __name__ == "__main__":
-    regex = re.compile(
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} - \[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+\] "GET /projects/260 HTTP/1.1" (.{3}) (\d+)')  # nopep8
-
-    line_count = 0
-    log = {}
-    log["file_size"] = 0
-    log["code_frequency"] = {
-        str(code): 0 for code in [
-            200, 301, 400, 401, 403, 404, 405, 500]}
-
+    # Main loop to process lines from stdin
     try:
         for line in sys.stdin:
-            line = line.strip()
-            match = regex.fullmatch(line)
-            if (match):
-                line_count += 1
-                code = match.group(1)
-                file_size = int(match.group(2))
-
-                # File size
-                log["file_size"] += file_size
-
-                # status code
-                if (code.isdecimal()):
-                    log["code_frequency"][code] += 1
-
-                if (line_count % 10 == 0):
-                    output(log)
-    finally:
-        output(log)
+            # Increment the line count
+            count += 1
+            # Split the line into components
+            data = line.split()
+            try:
+                # Extract the status code from the line
+                status_code = data[-2]
+                # If the status code is one we're tracking, increment its count
+                if status_code in stats:
+                    stats[status_code] += 1
+            except BaseException:
+                # Ignore any errors in processing the status code
+                pass
+            try:
+                # Add the size of the current request to the total filesize
+                filesize += int(data[-1])
+            except BaseException:
+                # Ignore any errors in processing the filesize
+                pass
+            # Every 10 lines, print the current statistics
+            if count % 10 == 0:
+                print_stats(stats, filesize)
+        # After processing all lines, print the final statistics
+        print_stats(stats, filesize)
+    except KeyboardInterrupt:
+        print_stats(stats, filesize)
+        raise
