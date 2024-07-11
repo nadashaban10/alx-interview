@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/node
 const request = require('request');
 
 // Function to fetch and print character names by movie ID
